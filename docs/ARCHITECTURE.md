@@ -26,6 +26,8 @@ January decisions imply January 2-February 1 deliveries. Construct timezone-awar
 
 No market cutoff was provided. Use an editable 10:00 UK default with an assumption label. Do not infer exchange rules. Report full-month metrics as retrospective; no historical risk buffer is computed from future observations.
 
+UI revision: delivery date is now the primary selector, including the accuracy range, daily chart labels, and drill-down. Display the previous day's full date alongside “Forecast available as of” and the editable time. Convert delivery dates to previous-day decision dates only at the API boundary. Backend routes and analytic selection are unchanged. This preserves the original January decision cohort while removing the need for users to mentally add a day.
+
 ## 005: Same-origin deployment
 
 The Docker runtime serves the built SPA and `/api` from the same origin. Vercel separates static assets and the Python function at its edge while preserving the same public URL contract. A process health endpoint is separate from dataset readiness. No credentials are required for Elexon.

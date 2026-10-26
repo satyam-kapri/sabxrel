@@ -40,8 +40,8 @@ import { useApi } from "./api";
 import type { Accuracy, Day, Interval, Metadata, Metrics } from "./types";
 
 type View = "decision" | "accuracy" | "data" | "methodology";
-const FIRST = "2026-01-01",
-  LAST = "2026-01-31";
+const FIRST_DELIVERY = "2026-01-02",
+  LAST_DELIVERY = "2026-02-01";
 const fmt = (value: number | null | undefined, digits = 0) =>
   value == null
     ? "—"
@@ -116,9 +116,10 @@ function ChartTooltip({
 
 function download(day: Day) {
   const csv = [
-    "decision_date,delivery_start_utc,cutoff_utc,forecast_publish_utc,forecast_mw,actual_hourly_mean_mw,error_mw,actual_half_hours",
+    "delivery_date,decision_date,delivery_start_utc,cutoff_utc,forecast_publish_utc,forecast_mw,actual_hourly_mean_mw,error_mw,actual_half_hours",
     ...day.rows.map((r) =>
       [
+        day.deliveryDate,
         day.decisionDate,
         r.startTime,
         day.cutoffAt,
@@ -135,7 +136,7 @@ function download(day: Day) {
   );
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `ventus-${day.decisionDate}-${day.cutoff.replace(":", "")}.csv`;
+  anchor.download = `ventus-delivery-${day.deliveryDate}-asof-${day.decisionDate}-${day.cutoff.replace(":", "")}.csv`;
   anchor.click();
   URL.revokeObjectURL(url);
 }
@@ -255,11 +256,13 @@ function Methodology() {
       <div className="method-grid">
         <article>
           <span className="step-number">01</span>
-          <h3>Reconstruct the decision</h3>
+          <h3>Choose the delivery date</h3>
           <p>
-            Choose a January 2026 purchase date and a UK decision cutoff. The
-            delivery window is the following calendar day. The default 10:00
-            cutoff is an assumption, not an exchange gate closure.
+            Choose the day the electricity is needed. “Forecast available as of”
+            shows the previous day's date and the selected UK time. Deliveries
+            from 2 January to 1 February correspond to purchase decisions made
+            in January 2026. The default 10:00 time is an editable assumption,
+            not an exchange gate closure.
           </p>
         </article>
         <article>
@@ -556,29 +559,21 @@ function DayWorkspace({ day }: { day: Day }) {
           <div className="context-icon">
             <Layers3 size={21} />
           </div>
-          <span className="eyebrow">DECISION CONTEXT</span>
-          <h3>
-            A forecast you could
-            <br />
-            have acted on.
-          </h3>
+          <span className="eyebrow">FORECAST CONTEXT</span>
+          <h3>Forecast timing</h3>
           <p>
-            Only publications available by your selected cutoff are included.
-            Later forecast revisions stay out of the comparison.
+            Only publications available by the selected date and time are
+            included. Later forecast revisions stay out of the comparison.
           </p>
           <dl>
-            <div>
-              <dt>Decision date</dt>
-              <dd>{dateLabel(day.decisionDate)}</dd>
-            </div>
             <div>
               <dt>Delivery date</dt>
               <dd>{dateLabel(day.deliveryDate)}</dd>
             </div>
             <div>
-              <dt>Decision cutoff</dt>
+              <dt>Forecast available as of</dt>
               <dd>
-                {day.cutoff} UK <span className="assumption">Assumed</span>
+                {dateLabel(day.decisionDate)}, {day.cutoff} UK
               </dd>
             </div>
           </dl>
@@ -661,10 +656,10 @@ function AccuracyWorkspace({
   revision: number;
   onSelect: (date: string) => void;
 }) {
-  const [from, setFrom] = useState(FIRST),
-    [to, setTo] = useState(LAST);
+  const [from, setFrom] = useState(FIRST_DELIVERY),
+    [to, setTo] = useState(LAST_DELIVERY);
   const result = useApi<Accuracy>(
-    `/api/accuracy?from=${from}&to=${to}&cutoff=${encodeURIComponent(cutoff)}`,
+    `/api/accuracy?from=${shiftDay(from, -1)}&to=${shiftDay(to, -1)}&cutoff=${encodeURIComponent(cutoff)}`,
     revision,
   );
   return (
@@ -672,15 +667,15 @@ function AccuracyWorkspace({
       <div className="cohort-controls">
         <span>
           <CalendarDays size={16} />
-          Decision cohort
+          Delivery dates
         </span>
         <label>
           From
           <input
-            aria-label="Accuracy start date"
+            aria-label="First delivery date"
             type="date"
-            min={FIRST}
-            max={LAST}
+            min={FIRST_DELIVERY}
+            max={LAST_DELIVERY}
             value={from}
             onInput={(e) =>
               e.currentTarget.value && setFrom(e.currentTarget.value)
@@ -691,10 +686,10 @@ function AccuracyWorkspace({
         <label>
           To
           <input
-            aria-label="Accuracy end date"
+            aria-label="Last delivery date"
             type="date"
-            min={FIRST}
-            max={LAST}
+            min={FIRST_DELIVERY}
+            max={LAST_DELIVERY}
             value={to}
             onInput={(e) =>
               e.currentTarget.value && setTo(e.currentTarget.value)
@@ -703,6 +698,11 @@ function AccuracyWorkspace({
           />
         </label>
       </div>
+      <p className="cohort-note">
+        Delivery dates 2 January–1 February cover January purchase decisions.
+        For each delivery date, use forecasts available by {cutoff} UK on the
+        previous day.
+      </p>
       {result.loading ? (
         <Loading />
       ) : result.error ? (
@@ -716,8 +716,8 @@ function AccuracyWorkspace({
                 <div>
                   <h2>Daily forecast accuracy</h2>
                   <p>
-                    Mean absolute error by purchase decision date · {cutoff} UK
-                    cutoff
+                    Mean absolute error by delivery date · forecasts available
+                    by {cutoff} UK the previous day
                   </p>
                 </div>
                 <span className="muted-tag">Retrospective</span>
@@ -728,7 +728,7 @@ function AccuracyWorkspace({
                   <ComposedChart
                     data={result.data.days.map((d) => ({
                       ...d,
-                      label: dateLabel(d.decisionDate, {
+                      label: dateLabel(d.deliveryDate, {
                         day: "numeric",
                         month: "short",
                       }),
@@ -787,8 +787,8 @@ function AccuracyWorkspace({
                 <table>
                   <thead>
                     <tr>
-                      <th>Decision date</th>
                       <th>Delivery date</th>
+                      <th>Forecast available as of (UK)</th>
                       <th>MAE (MW)</th>
                       <th>RMSE (MW)</th>
                       <th>Bias (MW)</th>
@@ -799,12 +799,9 @@ function AccuracyWorkspace({
                   <tbody>
                     {result.data.days.map((d) => (
                       <tr key={d.decisionDate}>
-                        <td>{dateLabel(d.decisionDate)}</td>
+                        <td>{dateLabel(d.deliveryDate)}</td>
                         <td>
-                          {dateLabel(d.deliveryDate, {
-                            day: "numeric",
-                            month: "short",
-                          })}
+                          {dateLabel(d.decisionDate)}, {cutoff}
                         </td>
                         <td>{fmt(d.mae)}</td>
                         <td>{fmt(d.rmse)}</td>
@@ -815,8 +812,8 @@ function AccuracyWorkspace({
                         <td>
                           <button
                             className="text-button"
-                            onClick={() => onSelect(d.decisionDate)}
-                            aria-label={`Inspect ${d.decisionDate}`}
+                            onClick={() => onSelect(d.deliveryDate)}
+                            aria-label={`Inspect delivery ${d.deliveryDate}`}
                           >
                             View day <ArrowRight size={13} />
                           </button>
@@ -992,7 +989,7 @@ function Failure({ message, retry }: { message: string; retry?: () => void }) {
 
 export default function App() {
   const [view, setView] = useState<View>("decision");
-  const [selectedDate, setSelectedDate] = useState("2026-01-14");
+  const [deliveryDate, setDeliveryDate] = useState("2026-01-15");
   const [cutoff, setCutoff] = useState("10:00");
   const [revision, setRevision] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -1007,13 +1004,13 @@ export default function App() {
   }, []);
   const metadata = useApi<Metadata>("/api/metadata", revision);
   const day = useApi<Day>(
-    `/api/decision-day?date=${selectedDate}&cutoff=${encodeURIComponent(cutoff)}`,
+    `/api/decision-day?date=${shiftDay(deliveryDate, -1)}&cutoff=${encodeURIComponent(cutoff)}`,
     revision,
   );
   const titles: Record<View, [string, string]> = {
     decision: [
       "Day-ahead overview",
-      "Wind forecasts available at the moment of your decision.",
+      "Select the delivery day and see the forecasts available the previous day.",
     ],
     accuracy: [
       "Forecast accuracy",
@@ -1154,90 +1151,112 @@ export default function App() {
               Export data
             </button>
           </div>
-          <div className="filter-bar">
-            <div className="date-filter">
-              <CalendarDays size={17} />
-              <label htmlFor="decision-date">Decision date</label>
-              <div className="date-input-wrap">
+          {(view === "decision" || view === "accuracy") && (
+            <div className="filter-bar">
+              {view === "decision" && (
+                <>
+                  <div className="date-filter">
+                    <CalendarDays size={17} />
+                    <label htmlFor="delivery-date">Delivery date</label>
+                    <div className="date-input-wrap">
+                      <input
+                        id="delivery-date"
+                        aria-label="Delivery date"
+                        type="date"
+                        min={FIRST_DELIVERY}
+                        max={LAST_DELIVERY}
+                        value={deliveryDate}
+                        onInput={(e) => {
+                          const value = e.currentTarget.value;
+                          if (value >= FIRST_DELIVERY && value <= LAST_DELIVERY)
+                            setDeliveryDate(value);
+                        }}
+                        onChange={(e) => {
+                          if (
+                            e.target.value >= FIRST_DELIVERY &&
+                            e.target.value <= LAST_DELIVERY
+                          )
+                            setDeliveryDate(e.target.value);
+                        }}
+                      />
+                    </div>
+                    <div className="date-steppers">
+                      <button
+                        className="icon-button"
+                        aria-label="Previous delivery day"
+                        disabled={deliveryDate <= FIRST_DELIVERY}
+                        onClick={() =>
+                          setDeliveryDate(shiftDay(deliveryDate, -1))
+                        }
+                      >
+                        <ChevronLeft size={15} />
+                      </button>
+                      <button
+                        className="icon-button"
+                        aria-label="Next delivery day"
+                        disabled={deliveryDate >= LAST_DELIVERY}
+                        onClick={() =>
+                          setDeliveryDate(shiftDay(deliveryDate, 1))
+                        }
+                      >
+                        <ChevronRight size={15} />
+                      </button>
+                    </div>
+                  </div>
+                  <span className="filter-divider" />
+                </>
+              )}
+              <div className="cutoff-filter">
+                <label htmlFor="cutoff">Forecast available as of</label>
+                <span className="asof-date">
+                  {view === "accuracy"
+                    ? "Previous day"
+                    : dateLabel(shiftDay(deliveryDate, -1))}
+                </span>
                 <input
-                  id="decision-date"
-                  aria-label="Decision date"
-                  type="date"
-                  min={FIRST}
-                  max={LAST}
-                  value={selectedDate}
+                  id="cutoff"
+                  aria-label="Forecast available as of time"
+                  aria-describedby="forecast-scope"
+                  type="time"
+                  value={cutoff}
                   onInput={(e) => {
                     const value = e.currentTarget.value;
-                    if (value >= FIRST && value <= LAST) setSelectedDate(value);
+                    if (/^\d{2}:\d{2}$/.test(value)) setCutoff(value);
                   }}
                   onChange={(e) => {
-                    if (e.target.value >= FIRST && e.target.value <= LAST)
-                      setSelectedDate(e.target.value);
+                    if (/^\d{2}:\d{2}$/.test(e.target.value))
+                      setCutoff(e.target.value);
                   }}
                 />
-              </div>
-              <div className="date-steppers">
-                <button
-                  className="icon-button"
-                  aria-label="Previous decision day"
-                  disabled={selectedDate <= FIRST}
-                  onClick={() => setSelectedDate(shiftDay(selectedDate, -1))}
+                <span className="timezone">UK</span>
+                <span
+                  className="assumption"
+                  title="No procurement cutoff was specified; this time is an editable assumption."
                 >
-                  <ChevronLeft size={15} />
-                </button>
-                <button
-                  className="icon-button"
-                  aria-label="Next decision day"
-                  disabled={selectedDate >= LAST}
-                  onClick={() => setSelectedDate(shiftDay(selectedDate, 1))}
-                >
-                  <ChevronRight size={15} />
-                </button>
+                  Assumed <Info size={11} />
+                </span>
               </div>
-            </div>
-            <span className="filter-divider" />
-            <div className="cutoff-filter">
-              <label htmlFor="cutoff">Decision cutoff</label>
-              <input
-                id="cutoff"
-                aria-label="Decision cutoff"
-                type="time"
-                value={cutoff}
-                onInput={(e) => {
-                  const value = e.currentTarget.value;
-                  if (/^\d{2}:\d{2}$/.test(value)) setCutoff(value);
-                }}
-                onChange={(e) => {
-                  if (/^\d{2}:\d{2}$/.test(e.target.value))
-                    setCutoff(e.target.value);
-                }}
-              />
-              <span className="timezone">UK</span>
-              <span
-                className="assumption"
-                title="No procurement cutoff was specified; this time is an editable assumption."
+              <button
+                className="refresh-button"
+                onClick={() => setRevision((n) => n + 1)}
+                aria-label="Refresh view"
               >
-                Assumed <Info size={11} />
-              </span>
+                <RefreshCw size={14} />
+                Refresh view
+              </button>
             </div>
-            <button
-              className="refresh-button"
-              onClick={() => setRevision((n) => n + 1)}
-              aria-label="Refresh view"
-            >
-              <RefreshCw size={14} />
-              Refresh view
-            </button>
-          </div>
-          <div className="scope-note">
-            <span>
-              <span className="tiny-dot" />
-              {view === "accuracy"
-                ? "January decision cohort"
-                : `Delivery ${dateLabel(shiftDay(selectedDate, 1), { weekday: "short", day: "numeric", month: "short", year: "numeric" })}`}
-            </span>
-            <span>Europe/London · hourly comparison</span>
-          </div>
+          )}
+          {(view === "decision" || view === "accuracy") && (
+            <div className="scope-note" id="forecast-scope">
+              <span>
+                <span className="tiny-dot" />
+                {view === "accuracy"
+                  ? "January purchase decisions · delivery 2 Jan–1 Feb"
+                  : `Forecasts available by ${dateLabel(shiftDay(deliveryDate, -1), { day: "numeric", month: "long", year: "numeric" })}, ${cutoff} UK time.`}
+              </span>
+              <span>Europe/London · hourly comparison</span>
+            </div>
+          )}
           {metadata.loading ? (
             <Loading />
           ) : metadata.error ? (
@@ -1261,7 +1280,7 @@ export default function App() {
               cutoff={cutoff}
               revision={revision}
               onSelect={(date) => {
-                setSelectedDate(date);
+                setDeliveryDate(date);
                 setView("decision");
                 window.scrollTo(0, 0);
               }}

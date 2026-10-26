@@ -60,7 +60,18 @@ const fetchMock = vi.fn(async (path: string) => ({
                 },
               ],
             }
-          : day,
+          : (() => {
+              const query = new URL(path, "http://localhost").searchParams;
+              const decisionDate = query.get("date")!;
+              const delivery = new Date(`${decisionDate}T12:00:00Z`);
+              delivery.setUTCDate(delivery.getUTCDate() + 1);
+              return {
+                ...day,
+                decisionDate,
+                deliveryDate: delivery.toISOString().slice(0, 10),
+                cutoff: query.get("cutoff")!,
+              };
+            })(),
 }));
 beforeEach(() => {
   fail = false;
@@ -69,12 +80,18 @@ beforeEach(() => {
 });
 
 describe("dashboard workflows", () => {
-  it("loads real API contracts and requests a new cutoff and date", async () => {
+  it("shows delivery date and the full previous-day forecast timestamp", async () => {
     render(<App />);
     expect(
       await screen.findByText("24 of 24 hourly pairs matched"),
     ).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Decision cutoff"), {
+    expect(screen.getByLabelText("Delivery date")).toHaveValue("2026-01-15");
+    expect(
+      screen.getByText(
+        "Forecasts available by 14 January 2026, 10:00 UK time.",
+      ),
+    ).toBeInTheDocument();
+    fireEvent.input(screen.getByLabelText("Forecast available as of time"), {
       target: { value: "08:30" },
     });
     await waitFor(() =>
@@ -83,7 +100,7 @@ describe("dashboard workflows", () => {
         expect.anything(),
       ),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Next decision day" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next delivery day" }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         "/api/decision-day?date=2026-01-15&cutoff=08%3A30",
@@ -111,10 +128,10 @@ describe("dashboard workflows", () => {
     await screen.findByText("24 of 24 hourly pairs matched");
     fireEvent.click(screen.getByRole("button", { name: "Forecast accuracy" }));
     const inspect = await screen.findByRole("button", {
-      name: "Inspect 2026-01-01",
+      name: "Inspect delivery 2026-01-02",
     });
     fireEvent.click(inspect);
-    expect(screen.getByLabelText("Decision date")).toHaveValue("2026-01-01");
+    expect(screen.getByLabelText("Delivery date")).toHaveValue("2026-01-02");
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         "/api/decision-day?date=2026-01-01&cutoff=10%3A00",
@@ -122,7 +139,62 @@ describe("dashboard workflows", () => {
       ),
     );
     expect(
-      screen.getByRole("button", { name: "Previous decision day" }),
+      screen.getByRole("button", { name: "Previous delivery day" }),
     ).toBeDisabled();
+  });
+  it("maps February 1 delivery to January 31 and prevents navigating past the range", async () => {
+    render(<App />);
+    await screen.findByText("24 of 24 hourly pairs matched");
+    fireEvent.change(screen.getByLabelText("Delivery date"), {
+      target: { value: "2026-02-01" },
+    });
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/decision-day?date=2026-01-31&cutoff=10%3A00",
+        expect.anything(),
+      ),
+    );
+    expect(
+      screen.getByText(
+        "Forecasts available by 31 January 2026, 10:00 UK time.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Next delivery day" }),
+    ).toBeDisabled();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Previous delivery day" }),
+    );
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/decision-day?date=2026-01-30&cutoff=10%3A00",
+        expect.anything(),
+      ),
+    );
+  });
+  it("translates the visible delivery cohort to January decision dates", async () => {
+    render(<App />);
+    await screen.findByText("24 of 24 hourly pairs matched");
+    fireEvent.click(screen.getByRole("button", { name: "Forecast accuracy" }));
+    await screen.findByRole("heading", { name: "Daily forecast accuracy" });
+    expect(screen.getByLabelText("First delivery date")).toHaveValue(
+      "2026-01-02",
+    );
+    expect(screen.getByLabelText("Last delivery date")).toHaveValue(
+      "2026-02-01",
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/accuracy?from=2026-01-01&to=2026-01-31&cutoff=10%3A00",
+      expect.anything(),
+    );
+    fireEvent.input(screen.getByLabelText("First delivery date"), {
+      target: { value: "2026-02-01" },
+    });
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/accuracy?from=2026-01-31&to=2026-01-31&cutoff=10%3A00",
+        expect.anything(),
+      ),
+    );
   });
 });

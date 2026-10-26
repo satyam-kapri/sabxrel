@@ -19,6 +19,8 @@ Private deployment credentials and claim URLs are kept outside tracked source. T
 
 ## Remaining external steps
 
+The interface now uses delivery dates as the primary controls and shows the previous day's full forecast-availability date/time. The existing local demo video predates this UI revision; its figures and methodology remain valid, but its recorded control labels need refreshing before final submission.
+
 1. Deploy to an account-owned Vercel or Heroku project and verify public access. The temporary deployment's HTTP 403 prevents claiming successful hosted delivery.
 2. Upload the local video as unlisted on YouTube using an authenticated account.
 3. Verify the final repository, hosted app, and video URLs in an incognito session before submitting the form.

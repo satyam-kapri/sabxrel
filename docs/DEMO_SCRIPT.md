@@ -6,7 +6,7 @@ The generated local walkthrough uses actual application captures and synthetic M
 
 ### 01 — Day-ahead overview
 
-Welcome to Ventus, a pilot for understanding the wind forecast behind a day-ahead purchasing decision. This is a historical replay using real Elexon data, with synthetic narration for this walkthrough. We are looking at the January fourteenth decision and January fifteenth delivery. The main chart shows the forecast available at the chosen cutoff alongside the actual outturn. The summary shows an average forecast of about eleven thousand six hundred and seventy-eight megawatts, and full coverage across twenty-four hourly comparisons. Actual generation is shown retrospectively; it was not known at the purchase decision.
+Welcome to Ventus, a pilot for understanding the wind forecast behind a day-ahead purchasing decision. This is a historical replay using real Elexon data, with synthetic narration for this walkthrough. We select January fifteenth as the delivery date. Forecast available as of shows January fourteenth at ten in the morning, so both dates are explicit. The main chart compares that forecast with actual outturn. The summary shows an average forecast of about eleven thousand six hundred and seventy-eight megawatts, with twenty-four matched hours. Actual generation is shown retrospectively; it was not known when purchasing.
 
 ### 02 — Earlier cutoff
 
@@ -14,7 +14,7 @@ Changing the cutoff from ten to eight in the morning reconstructs a different in
 
 ### 03 — Forecast accuracy
 
-The accuracy view evaluates the full January decision cohort and lets us narrow the date range or inspect any day. At the default ten o'clock cutoff, all seven hundred and forty-four delivery hours have a valid forecast and actual comparison. The mean absolute error is about two thousand and thirteen megawatts; the positive bias indicates that wind was overforecast on average. Root mean square error gives extra weight to larger errors. These are retrospective measurements of this dataset, not a recommended purchase buffer or a probabilistic guarantee.
+The accuracy view uses delivery dates for its range, chart, and daily breakdown. January second through February first covers the original January purchase decisions. At the default ten o'clock time on each previous day, all seven hundred and forty-four delivery hours have a valid comparison. The mean absolute error is about two thousand and thirteen megawatts; the positive bias indicates that wind was overforecast on average. Root mean square error gives extra weight to larger errors. These are retrospective measurements, not a recommended purchase buffer or a probabilistic guarantee.
 
 ### 04 — Methodology and limits
 
@@ -32,7 +32,7 @@ The domain layer is independent of the web framework. For each target hour, fore
 
 ### 07 — Verification
 
-Thirty-six backend tests cover temporal eligibility, exact cutoff boundaries, future revision exclusion, missing and zero actuals, conflicting records, metric arithmetic, date bounds, daylight saving, API validation, and checksum failures. Three frontend workflow tests cover filter requests, unavailable data and retry, and cohort drill-down. Browser checks verify the real rendered charts and the corrected native input interaction. An independent source sample checks the first hour against two actual readings. The public GitHub Actions run passed the tests, production build, Docker image build, and a container runtime smoke test on Ubuntu.
+Thirty-six backend tests cover temporal eligibility, exact cutoff boundaries, future revision exclusion, missing and zero actuals, conflicting records, metric arithmetic, date bounds, daylight saving, API validation, and checksum failures. Five frontend workflow tests cover delivery mapping, forecast timestamps, date boundaries, unavailable data and retry, and cohort drill-down. Browser checks verify the real charts and native input interaction. An independent source sample checks the first hour against two actual readings. Continuous integration verifies tests, the production build, the Docker image, and a container runtime smoke test on Ubuntu.
 
 ### 08 — Delivery and handover
 

@@ -391,6 +391,23 @@ main {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+}
+.asof-date {
+  font-size: 11px;
+  font-weight: 550;
+  white-space: nowrap;
+}
+.cohort-note {
+  margin-top: 17px;
+  font-size: 10px;
+  color: #607761;
+  line-height: 1.8;
+}
+.decision-context dl > div:last-child {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
 }
 .cutoff-filter input {
   border: 1px solid #e0e6dc;
@@ -1364,13 +1381,15 @@ tbody tr:hover {
     gap: 8px;
   }
   .date-filter > label {
-    display: none;
+    display: inline;
+    white-space: nowrap;
   }
   .cutoff-filter {
     gap: 6px;
   }
   .cutoff-filter > label {
     font-size: 9px;
+    flex-basis: 100%;
   }
   .metric-strip {
     grid-template-columns: repeat(2, 1fr);

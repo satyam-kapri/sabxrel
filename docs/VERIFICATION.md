@@ -12,7 +12,7 @@
 ## Automated checks
 
 - Backend: 36 tests passed, including temporal eligibility, metrics, missing data, month/DST boundaries, source contracts, API errors, and integrity validation.
-- Frontend: 3 workflow tests passed, including date/cutoff changes, unavailable data with retry, and accuracy drill-down.
+- Frontend: 5 workflow tests passed, including the full forecast-availability timestamp, delivery-to-decision mapping, unavailable data with retry, accuracy drill-down, and February 1 delivery mapping to January 31. Accuracy range tests confirm January 2-February 1 maps to the unchanged January 1-31 backend cohort.
 - Production TypeScript/Vite build passed. Vendor chart code is split into a separate bundle.
 - Runtime frontend dependency audit: zero known vulnerabilities at the recorded check.
 - Server health, metadata, decision-day, and cohort routes exercised with the validated snapshot.
