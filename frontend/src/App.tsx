@@ -31,6 +31,8 @@ import {
   Info,
   Layers3,
   Menu,
+  Moon,
+  Sun,
   RefreshCw,
   ShieldCheck,
   Wind,
@@ -139,7 +141,7 @@ function download(day: Day) {
   );
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `ventus-${day.deliveryDate}-taken-till-${day.forecastDate}-${day.cutoff.replace(":", "")}.csv`;
+  anchor.download = `windin-${day.deliveryDate}-taken-till-${day.forecastDate}-${day.cutoff.replace(":", "")}.csv`;
   anchor.click();
   URL.revokeObjectURL(url);
 }
@@ -149,6 +151,7 @@ function MetricStrip({ metrics, day }: { metrics: Metrics; day?: Day }) {
     ? [
         {
           label: "Average wind forecast",
+          tone: "forecast",
           value: fmt(day.averageForecast),
           unit: "MW",
           detail: "Across available delivery hours",
@@ -156,6 +159,7 @@ function MetricStrip({ metrics, day }: { metrics: Metrics; day?: Day }) {
         },
         {
           label: "Mean absolute error",
+          tone: "error",
           value: fmt(metrics.mae),
           unit: "MW",
           detail: "Average forecast deviation",
@@ -163,6 +167,7 @@ function MetricStrip({ metrics, day }: { metrics: Metrics; day?: Day }) {
         },
         {
           label: "Forecast bias",
+          tone: "bias",
           value:
             metrics.bias == null
               ? "—"
@@ -183,6 +188,7 @@ function MetricStrip({ metrics, day }: { metrics: Metrics; day?: Day }) {
         },
         {
           label: "Data coverage",
+          tone: "coverage",
           value: fmt(metrics.coverage * 100, 0),
           unit: "%",
           detail: `${metrics.matched} of ${metrics.expected} hourly pairs matched`,
@@ -192,6 +198,7 @@ function MetricStrip({ metrics, day }: { metrics: Metrics; day?: Day }) {
     : [
         {
           label: "Mean absolute error",
+          tone: "error",
           value: fmt(metrics.mae),
           unit: "MW",
           detail: "Typical absolute deviation",
@@ -199,6 +206,7 @@ function MetricStrip({ metrics, day }: { metrics: Metrics; day?: Day }) {
         },
         {
           label: "Root mean square error",
+          tone: "rmse",
           value: fmt(metrics.rmse),
           unit: "MW",
           detail: "Sensitive to larger errors",
@@ -206,6 +214,7 @@ function MetricStrip({ metrics, day }: { metrics: Metrics; day?: Day }) {
         },
         {
           label: "Forecast bias",
+          tone: "bias",
           value:
             metrics.bias == null
               ? "—"
@@ -216,6 +225,7 @@ function MetricStrip({ metrics, day }: { metrics: Metrics; day?: Day }) {
         },
         {
           label: "Data coverage",
+          tone: "coverage",
           value: fmt(metrics.coverage * 100),
           unit: "%",
           detail: `${metrics.matched} of ${metrics.expected} hours matched`,
@@ -224,8 +234,8 @@ function MetricStrip({ metrics, day }: { metrics: Metrics; day?: Day }) {
       ];
   return (
     <div className="metric-strip">
-      {items.map(({ label, value, unit, detail, icon: Icon }) => (
-        <div className="metric" key={label}>
+      {items.map(({ label, tone, value, unit, detail, icon: Icon }) => (
+        <div className={`metric metric-${tone}`} key={label}>
           <div className="metric-label">
             {label}
             <Icon size={16} />
@@ -404,12 +414,20 @@ function DayWorkspace({ day }: { day: Day }) {
             >
               <defs>
                 <linearGradient id="forecastFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#198877" stopOpacity={0.17} />
-                  <stop offset="100%" stopColor="#198877" stopOpacity={0.01} />
+                  <stop
+                    offset="0%"
+                    stopColor="var(--blue)"
+                    stopOpacity={0.17}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="var(--blue)"
+                    stopOpacity={0.01}
+                  />
                 </linearGradient>
               </defs>
               <CartesianGrid
-                stroke="#e8eeeb"
+                stroke="var(--grid)"
                 vertical={false}
                 strokeDasharray="3 5"
               />
@@ -417,7 +435,7 @@ function DayWorkspace({ day }: { day: Day }) {
                 dataKey="hour"
                 tickLine={false}
                 axisLine={false}
-                tick={{ fill: "#82908b", fontSize: 11 }}
+                tick={{ fill: "var(--muted)", fontSize: 11 }}
                 interval={3}
                 tickMargin={16}
               />
@@ -425,13 +443,16 @@ function DayWorkspace({ day }: { day: Day }) {
                 tickFormatter={(v) => fmt(v / 1000, 0)}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fill: "#82908b", fontSize: 11 }}
+                tick={{ fill: "var(--muted)", fontSize: 11 }}
                 domain={[0, "auto"]}
                 tickCount={5}
               />
               <Tooltip
                 content={<ChartTooltip />}
-                cursor={{ stroke: "#acbcb5", strokeDasharray: "4 4" }}
+                cursor={{
+                  stroke: "var(--chart-actual)",
+                  strokeDasharray: "4 4",
+                }}
               />
               {forecastVisible && (
                 <Area
@@ -449,7 +470,7 @@ function DayWorkspace({ day }: { day: Day }) {
                   dataKey="actual"
                   name="Actual"
                   type="linear"
-                  stroke="#8c9d97"
+                  stroke="var(--muted)"
                   strokeDasharray="5 5"
                   strokeWidth={2}
                   dot={false}
@@ -462,10 +483,10 @@ function DayWorkspace({ day }: { day: Day }) {
                   dataKey="forecast"
                   name="Forecast"
                   type="linear"
-                  stroke="#168572"
+                  stroke="var(--blue)"
                   strokeWidth={2.6}
                   dot={false}
-                  activeDot={{ r: 5, stroke: "white", strokeWidth: 3 }}
+                  activeDot={{ r: 5, stroke: "var(--canvas)", strokeWidth: 3 }}
                   connectNulls={false}
                   isAnimationActive={false}
                 />
@@ -513,7 +534,7 @@ function DayWorkspace({ day }: { day: Day }) {
                 margin={{ top: 10, right: 8, left: -7, bottom: 0 }}
               >
                 <CartesianGrid
-                  stroke="#edf0ed"
+                  stroke="var(--grid)"
                   vertical={false}
                   strokeDasharray="3 5"
                 />
@@ -522,16 +543,16 @@ function DayWorkspace({ day }: { day: Day }) {
                   interval={5}
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "#82908b", fontSize: 10 }}
+                  tick={{ fill: "var(--muted)", fontSize: 10 }}
                 />
                 <YAxis
                   width={54}
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "#82908b", fontSize: 10 }}
+                  tick={{ fill: "var(--muted)", fontSize: 10 }}
                   tickFormatter={(v) => fmt(v)}
                 />
-                <ReferenceLine y={0} stroke="#c9d5ce" />
+                <ReferenceLine y={0} stroke="var(--chart-actual)" />
                 <Tooltip content={<ChartTooltip />} />
                 <Bar
                   dataKey="error"
@@ -543,7 +564,9 @@ function DayWorkspace({ day }: { day: Day }) {
                   {day.rows.map((row) => (
                     <Cell
                       key={row.startTime}
-                      fill={(row.error ?? 0) >= 0 ? "#c49a5e" : "#3a9786"}
+                      fill={
+                        (row.error ?? 0) >= 0 ? "var(--amber)" : "var(--blue)"
+                      }
                     />
                   ))}
                 </Bar>
@@ -718,7 +741,7 @@ function AccuracyWorkspace({
                   >
                     <CartesianGrid
                       vertical={false}
-                      stroke="#e8eeeb"
+                      stroke="var(--grid)"
                       strokeDasharray="3 5"
                     />
                     <XAxis
@@ -727,20 +750,23 @@ function AccuracyWorkspace({
                         0,
                         Math.floor(result.data.days.length / 8),
                       )}
-                      tick={{ fontSize: 11, fill: "#82908b" }}
+                      tick={{ fontSize: 11, fill: "var(--muted)" }}
                       tickLine={false}
                       axisLine={false}
                       tickMargin={12}
                     />
                     <YAxis
-                      tick={{ fontSize: 11, fill: "#82908b" }}
+                      tick={{ fontSize: 11, fill: "var(--muted)" }}
                       tickLine={false}
                       axisLine={false}
                     />
                     <Tooltip
                       formatter={(value) => [`${fmt(Number(value))} MW`, "MAE"]}
+                      cursor={{ fill: "var(--surface)" }}
                       contentStyle={{
-                        border: "1px solid #dde5df",
+                        background: "var(--surface)",
+                        color: "var(--ink)",
+                        border: "1px solid var(--border)",
                         borderRadius: 8,
                         fontSize: 12,
                       }}
@@ -748,7 +774,7 @@ function AccuracyWorkspace({
                     <Bar
                       dataKey="mae"
                       name="MAE"
-                      fill="#238875"
+                      fill="var(--blue)"
                       radius={[3, 3, 0, 0]}
                       maxBarSize={24}
                       isAnimationActive={false}
@@ -969,6 +995,21 @@ function Failure({ message, retry }: { message: string; retry?: () => void }) {
 }
 
 export default function App() {
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    try {
+      return localStorage.getItem("windin-theme") === "dark" ? "dark" : "light";
+    } catch {
+      return "light";
+    }
+  });
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem("windin-theme", theme);
+    } catch {
+      /* Storage may be disabled. */
+    }
+  }, [theme]);
   const [view, setView] = useState<View>("decision");
   const [deliveryDate, setDeliveryDate] = useState("2026-01-15");
   const [cutoff, setCutoff] = useState("10:00");
@@ -1051,13 +1092,13 @@ export default function App() {
             e.preventDefault();
             navigate("decision");
           }}
-          aria-label="Ventus home"
+          aria-label="WindIN home"
         >
           <div className="brand-mark">
             <Wind size={25} strokeWidth={1.8} />
           </div>
           <div>
-            ventus<span>WIND INTELLIGENCE</span>
+            WindIN<span>WIND INTELLIGENCE</span>
           </div>
         </a>
         <div className="workspace-label">WORKSPACE</div>
@@ -1076,15 +1117,6 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="pilot-note">
-            <span className="pilot-dot" />
-            <span>JANUARY 2026 PILOT</span>
-            <p>
-              Great Britain
-              <br />
-              National wind generation
-            </p>
-          </div>
           <button
             onClick={() => navigate("methodology")}
             className={`nav-item ${view === "methodology" ? "active" : ""}`}
@@ -1092,6 +1124,16 @@ export default function App() {
             <BookOpen size={17} />
             Methodology
             <ArrowUpRight size={14} />
+          </button>
+          <button
+            className="nav-item theme-toggle"
+            aria-label={
+              theme === "light" ? "Switch to dark mode" : "Switch to light mode"
+            }
+            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          >
+            {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+            <span>{theme === "light" ? "Dark mode" : "Light mode"}</span>
           </button>
           <div className="sidebar-source">
             <div className="source-symbol">e</div>
@@ -1117,14 +1159,16 @@ export default function App() {
               <h1>{titles[view][0]}</h1>
               <p>{titles[view][1]}</p>
             </div>
-            <button
-              className="button export-button"
-              disabled={!day.data || view !== "decision"}
-              onClick={() => day.data && download(day.data)}
-            >
-              <Download size={15} />
-              Export data
-            </button>
+            <div className="heading-actions">
+              <button
+                className="button export-button"
+                disabled={!day.data || view !== "decision"}
+                onClick={() => day.data && download(day.data)}
+              >
+                <Download size={15} />
+                Export data
+              </button>
+            </div>
           </div>
           {(view === "decision" || view === "accuracy") && (
             <div
@@ -1274,12 +1318,6 @@ export default function App() {
                   }}
                 />
                 <span className="timezone">UK</span>
-                <span
-                  className="assumption"
-                  title="No procurement cutoff was specified; this time is an editable assumption."
-                >
-                  Assumed <Info size={11} />
-                </span>
               </div>
               <button
                 className="refresh-button"

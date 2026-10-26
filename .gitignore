@@ -18,4 +18,21 @@ test-results/
 requirements.pdf
 output/
 
-.vercel
+
+# Local tooling, logs, and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+*.pid
+*.swp
+*.swo
+.ruff_cache/
+.mypy_cache/
+.tox/
+htmlcov/
+.coverage
+.coverage.*
+# One-off deployment experiment
+vercel.temporary.json

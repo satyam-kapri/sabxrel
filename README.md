@@ -1,4 +1,4 @@
-# Ventus · wind intelligence
+# WindIN · wind intelligence
 
 A React and Python dashboard for replaying Great Britain day-ahead wind forecast decisions in January 2026. Inspect the forecast that was available at a chosen cutoff, compare it with actual generation, and evaluate historical accuracy.
 
@@ -112,7 +112,7 @@ A single modular backend serves a fixed-month read-only snapshot. This avoids da
 
 ## Deployment
 
-Public repository: [satyam-kapri2/r-5f01eb504d](https://github.com/satyam-kapri2/r-5f01eb504d). [Verified CI run](https://github.com/satyam-kapri2/r-5f01eb504d/actions/runs/40379455188) passed tests, production build, Docker build, and running-container smoke tests.
+Public repository: [satyam-kapri/sabxrel](https://github.com/satyam-kapri/sabxrel). [Verified CI run](https://github.com/satyam-kapri2/r-5f01eb504d/actions/runs/40379455188) passed tests, production build, Docker build, and running-container smoke tests.
 
 Deployment status and live links are maintained in `docs/DELIVERY.md`. The temporary Vercel preview returned an edge 403 during public verification and is not a working submission URL. Account-owned hosting remains outstanding.
 

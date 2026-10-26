@@ -6,7 +6,7 @@ The generated local walkthrough uses actual application captures and synthetic M
 
 ### 01 — Day-ahead overview
 
-Welcome to Ventus, a pilot for understanding the wind forecast behind a day-ahead purchasing decision. This is a historical replay using real Elexon data, with synthetic narration for this walkthrough. We select January fifteenth as the delivery date. Forecast taken till shows January fourteenth at ten in the morning, so both dates are explicit. The main chart compares that forecast with actual outturn. The summary shows an average forecast of about eleven thousand six hundred and seventy-eight megawatts, with twenty-four matched hours. Actual generation is shown retrospectively; it was not known when purchasing.
+Welcome to WindIN, a pilot for understanding the wind forecast behind a day-ahead purchasing decision. This is a historical replay using real Elexon data, with synthetic narration for this walkthrough. We select January fifteenth as the delivery date. Forecast taken till shows January fourteenth at ten in the morning, so both dates are explicit. The main chart compares that forecast with actual outturn. The summary shows an average forecast of about eleven thousand six hundred and seventy-eight megawatts, with twenty-four matched hours. Actual generation is shown retrospectively; it was not known when purchasing.
 
 ### 02 — Earlier cutoff
 

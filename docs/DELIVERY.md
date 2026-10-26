@@ -2,7 +2,7 @@
 
 The application is implemented and runs locally at http://127.0.0.1:8000 while the preview server is active.
 
-- Public repository: https://github.com/satyam-kapri2/r-5f01eb504d
+- Public repository: https://github.com/satyam-kapri/sabxrel
 - Vercel: https://zippy-monsoon-cgkojm2.tmp.now was reported READY by the CLI, but both browser and independent HTTP checks return an edge HTTP 403. It is not a verified working public app. The anonymous preview expires after 60 minutes unless claimed; account-owned deployment remains outstanding.
 - Docker: image build and running-container smoke tests passed on Ubuntu in [GitHub Actions](https://github.com/satyam-kapri2/r-5f01eb504d/actions/runs/40379455188). The local Docker Desktop engine is unavailable.
 - Demo: local `output/ventus-demo.mp4` is complete, with synthetic Microsoft David narration and eight real browser captures. Duration is 5:29 overall: client part 2:31, technical part 2:58. Captions are in `output/ventus-demo.srt`; chapter timings are in `output/demo-manifest.json`. No unlisted YouTube publication is claimed.

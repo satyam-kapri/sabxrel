@@ -16,7 +16,7 @@ from .domain import Dataset, FIRST, LAST, cutoff_time
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = Path(os.getenv("DATA_DIRECTORY", str(ROOT/"data")))
-app = FastAPI(title="Ventus Wind Analytics", version="1.0.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
+app = FastAPI(title="WindIN Wind Analytics", version="1.0.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
 log = logging.getLogger("ventus")
 
 

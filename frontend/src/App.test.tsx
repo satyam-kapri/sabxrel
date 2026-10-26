@@ -84,12 +84,28 @@ const fetchMock = vi.fn(async (path: string) => ({
             })(),
 }));
 beforeEach(() => {
+  localStorage.clear();
   fail = false;
   fetchMock.mockClear();
   vi.stubGlobal("fetch", fetchMock);
 });
 
 describe("dashboard workflows", () => {
+  it("persists dark mode across remounts and allows returning to light mode", () => {
+    const first = render(<App />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Switch to dark mode" }),
+    );
+    expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+    expect(localStorage.getItem("windin-theme")).toBe("dark");
+    first.unmount();
+    render(<App />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Switch to light mode" }),
+    );
+    expect(document.documentElement).toHaveAttribute("data-theme", "light");
+    expect(localStorage.getItem("windin-theme")).toBe("light");
+  });
   it("shows delivery date and the full previous-day forecast timestamp", async () => {
     render(<App />);
     expect(
@@ -135,6 +151,7 @@ describe("dashboard workflows", () => {
     expect(
       screen.queryByText("24 of 24 hourly pairs matched"),
     ).not.toBeInTheDocument();
+    localStorage.clear();
     fail = false;
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(
