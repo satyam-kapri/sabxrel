@@ -421,6 +421,9 @@ main {
 .cutoff-filter input[type="date"] {
   width: 130px;
 }
+.cutoff-filter input[type="time"] {
+  width: 100px;
+}
 .cutoff-filter select {
   background: #fafbf8;
   border: 1px solid #e0e6dc;
