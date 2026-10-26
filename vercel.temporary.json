@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": ["backend/app/**", "data/manifest.json", "data/snapshot.json"],
+        "excludeFiles": [".venv/**", "data/raw/**", "tmp/**", "backend/tests/**"]
+      }
+    },
+    { "src": "dist/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/index.py" },
+    { "src": "/assets/(.*)", "dest": "/dist/assets/$1" },
+    { "src": "/favicon.svg", "dest": "/dist/favicon.svg" },
+    { "src": "/(.*)", "dest": "/dist/index.html" }
+  ]
+}

@@ -1,0 +1,16 @@
+.git
+.venv
+.vercel_python_packages
+node_modules
+tmp
+data/raw
+requirements.pdf
+PROJECT_PLAN.md
+backend/tests
+frontend/src/*.test.tsx
+frontend/src/test-setup.ts
+output
+*.tsbuildinfo
+test-results
+!dist/**
+.pytest_cache

@@ -1,0 +1,12 @@
+.git
+.venv
+node_modules
+dist
+tmp
+data/raw
+__pycache__
+.pytest_cache
+.env
+*.pdf
+test-results
+output

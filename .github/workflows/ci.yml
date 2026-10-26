@@ -1,0 +1,32 @@
+name: Verify application
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: npm ci --no-audit --no-fund
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest backend/tests -q
+      - run: npm test
+      - run: npm run build
+      - run: docker build -t ventus:test .
+      - name: Container smoke test
+        run: |
+          docker run -d --name ventus -p 8000:8000 ventus:test
+          for i in $(seq 1 20); do
+            if curl -fsS http://localhost:8000/api/metadata > /dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS http://localhost:8000/api/decision-day?date=2026-01-01
+          curl -fsS http://localhost:8000/ > /dev/null
+      - if: always()
+        run: docker logs ventus || true
