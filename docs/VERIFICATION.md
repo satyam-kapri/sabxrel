@@ -11,8 +11,8 @@
 
 ## Automated checks
 
-- Backend: 36 tests passed, including temporal eligibility, metrics, missing data, month/DST boundaries, source contracts, API errors, and integrity validation.
-- Frontend: 5 workflow tests passed, including the full forecast-availability timestamp, delivery-to-decision mapping, unavailable data with retry, accuracy drill-down, and February 1 delivery mapping to January 31. Accuracy range tests confirm January 2-February 1 maps to the unchanged January 1-31 backend cohort.
+- Backend: 44 tests passed, including temporal eligibility, metrics, missing data, month/DST boundaries, source contracts, API errors, and integrity validation.
+- Frontend: 6 workflow tests passed, including the full forecast-availability timestamp, delivery-to-decision mapping, unavailable data with retry, accuracy drill-down, and February 1 delivery mapping to January 31. Accuracy range tests confirm January 2-February 1 maps to the unchanged January 1-31 backend cohort.
 - Production TypeScript/Vite build passed. Vendor chart code is split into a separate bundle.
 - Runtime frontend dependency audit: zero known vulnerabilities at the recorded check.
 - Server health, metadata, decision-day, and cohort routes exercised with the validated snapshot.
@@ -36,3 +36,12 @@ Docker Desktop is installed but its Linux engine did not become available after 
 No authenticated Vercel or Heroku session was present. The Windows Vercel local builder hit a missing-shell/path issue. A Build Output API workaround prepared Linux Python wheels and a minimal function package. Vercel reported the temporary deployment READY, but browser and independent HTTP checks returned an edge 403. Public hosting is not claimed as passed.
 
 The test client emits an upstream Starlette warning recommending a different HTTP client; the exercised response contracts and all backend tests pass.
+
+## Forecast-date controls and layout revision
+
+- The forecast picker accepts an earlier date/time for the same generation day; API and domain tests verify that later publications are excluded. Same-day and future cutoff dates are rejected.
+- Cohort `leadDays` applies the same forecast age to every day; existing one-day defaults remain unchanged.
+- The workspace top bar is removed; mobile navigation is available in the page heading.
+- Daily generation and error charts name their actual date. Accuracy titles name the selected date range.
+- Accuracy date inputs are grouped with forecast settings in the main selection bar.
+- Bundled fonts are served as static files rather than falling through to SPA HTML.

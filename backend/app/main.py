@@ -64,16 +64,18 @@ def metadata():
 
 
 @app.get("/api/decision-day")
-def decision_day(date: date, cutoff: str = Query("10:00", pattern=r"^\d{2}:\d{2}$")):
+def decision_day(date: date, cutoff: str = Query("10:00", pattern=r"^\d{2}:\d{2}$"),
+                 forecast_date: date | None = Query(None, alias="forecastDate")):
     cutoff_time(cutoff)
-    return load()[0].day(date, cutoff)
+    return load()[0].day(date, cutoff, forecast_date)
 
 
 @app.get("/api/accuracy")
 def accuracy(from_date: date = Query(FIRST, alias="from"), to_date: date = Query(LAST, alias="to"),
-             cutoff: str = Query("10:00", pattern=r"^\d{2}:\d{2}$")):
+             cutoff: str = Query("10:00", pattern=r"^\d{2}:\d{2}$"),
+             lead_days: int = Query(1, alias="leadDays", ge=1, le=3660)):
     cutoff_time(cutoff)
-    return load()[0].accuracy(from_date, to_date, cutoff)
+    return load()[0].accuracy(from_date, to_date, cutoff, lead_days)
 
 
 dist = ROOT/"dist"
@@ -85,6 +87,9 @@ if (dist/"assets").is_dir():
 def frontend(path: str):
     if path.startswith("api/"):
         raise HTTPException(404, "API route not found")
+    requested = (dist/path).resolve()
+    if requested.is_relative_to(dist.resolve()) and requested.is_file():
+        return FileResponse(requested)
     if (dist/"index.html").is_file():
         return FileResponse(dist/"index.html")
     raise HTTPException(404, "Frontend not built. Run npm run build, or use the Vite development server.")

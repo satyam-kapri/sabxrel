@@ -37,3 +37,9 @@ The Docker runtime serves the built SPA and `/api` from the same origin. Vercel 
 Use independent small fixtures to test selection and metric arithmetic. Use the included real snapshot to check full cohort coverage and a hand-checked source observation. Normal CI makes no upstream data calls. Real extraction writes its source URLs, timestamps, checksums, and row counts for later reproduction.
 
 Runtime dependency input is pinned in `requirements.txt`; the resolved local environment is captured in `requirements.lock.txt`. npm uses `package-lock.json`. Production deployment credentials and temporary deployment claim details never enter tracked source.
+
+## 007: Separate generation day from forecast publication cutoff
+
+The UI now calls the editable publication limit “Forecast taken till”. Its date can be earlier than the default previous day. `Dataset.day` accepts an optional forecast date while retaining the January decision cohort and generation-day mapping. The cutoff cannot reach the generation day. The response exposes `forecastDate` and the exact UTC `cutoffAt`; charts always name the generation day.
+
+For cohort analysis, `leadDays` expresses the selected number of days before each generation day. This avoids applying one absolute cutoff to an entire month, which could introduce future information for earlier rows. Source gaps remain missing and coverage is recalculated. The default remains one day, so existing results and API clients keep their previous behavior.

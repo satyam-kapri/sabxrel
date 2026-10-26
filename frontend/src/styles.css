@@ -418,6 +418,28 @@ main {
   padding: 5px 7px;
   font-weight: 500;
 }
+.cutoff-filter input[type="date"] {
+  width: 130px;
+}
+.cutoff-filter select {
+  background: #fafbf8;
+  border: 1px solid #e0e6dc;
+  border-radius: 4px;
+  padding: 5px 7px;
+  color: #30433a;
+  font-size: 11px;
+}
+.filter-label {
+  font-size: 10px;
+  color: #607761;
+}
+.filter-bar .cohort-controls {
+  margin: 0;
+  gap: 12px;
+}
+.page-menu {
+  margin-bottom: 16px;
+}
 .cutoff-filter input::-webkit-calendar-picker-indicator {
   width: 11px;
   opacity: 0.5;
@@ -1479,6 +1501,12 @@ tbody tr:hover {
   }
 }
 @media (max-width: 650px) {
+  .cutoff-filter .filter-label {
+    flex-basis: 100%;
+  }
+  .filter-bar .cohort-controls {
+    width: 100%;
+  }
   :root {
     --sidebar: 242px;
   }

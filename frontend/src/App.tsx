@@ -91,7 +91,10 @@ function ChartTooltip({
   const row = payload[0].payload;
   return (
     <div className="chart-tooltip">
-      <strong>{label} UK time</strong>
+      <strong>
+        {row?.startTime ? `${dateLabel(row.startTime.slice(0, 10))} · ` : ""}
+        {label} UK time
+      </strong>
       {payload
         .filter((p) => p.name !== "Forecast area")
         .map((p) => (
@@ -136,7 +139,7 @@ function download(day: Day) {
   );
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `ventus-delivery-${day.deliveryDate}-asof-${day.decisionDate}-${day.cutoff.replace(":", "")}.csv`;
+  anchor.download = `ventus-${day.deliveryDate}-taken-till-${day.forecastDate}-${day.cutoff.replace(":", "")}.csv`;
   anchor.click();
   URL.revokeObjectURL(url);
 }
@@ -258,11 +261,12 @@ function Methodology() {
           <span className="step-number">01</span>
           <h3>Choose the delivery date</h3>
           <p>
-            Choose the day the electricity is needed. “Forecast available as of”
-            shows the previous day's date and the selected UK time. Deliveries
-            from 2 January to 1 February correspond to purchase decisions made
-            in January 2026. The default 10:00 time is an editable assumption,
-            not an exchange gate closure.
+            Choose the day the electricity is needed. “Forecast taken till” lets
+            you select an earlier publication date and UK time. Moving to
+            another generation day preserves that number of days of lead time.
+            Deliveries from 2 January to 1 February correspond to purchase
+            decisions made in January 2026. The default 10:00 time is an
+            editable assumption, not an exchange gate closure.
           </p>
         </article>
         <article>
@@ -355,16 +359,15 @@ function DayWorkspace({ day }: { day: Day }) {
       <section className="chart-section">
         <div className="section-heading">
           <div>
-            <h2>Wind generation forecast</h2>
-            <p>
-              Delivery{" "}
+            <h2>
+              Wind generation ·{" "}
               {dateLabel(day.deliveryDate, {
-                weekday: "long",
                 day: "numeric",
                 month: "long",
-              })}{" "}
-              · hourly comparison
-            </p>
+                year: "numeric",
+              })}
+            </h2>
+            <p>Hourly forecast and actual generation · UK time</p>
           </div>
           <div className="chart-legend">
             <label>
@@ -473,8 +476,7 @@ function DayWorkspace({ day }: { day: Day }) {
         <div className="chart-footer">
           <span>
             <span className="tiny-dot" />
-            Available by {day.cutoff} UK on{" "}
-            {dateLabel(day.decisionDate, { day: "numeric", month: "short" })}
+            Forecast taken till {dateLabel(day.forecastDate)} at {day.cutoff} UK
           </span>
           <span>
             {lastPublication
@@ -488,7 +490,14 @@ function DayWorkspace({ day }: { day: Day }) {
         <section className="error-section">
           <div className="section-heading">
             <div>
-              <h2>Forecast error</h2>
+              <h2>
+                Forecast error ·{" "}
+                {dateLabel(day.deliveryDate, {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </h2>
               <p>Forecast − actual · MW</p>
             </div>
             <span className="muted-tag">Hourly</span>
@@ -571,9 +580,9 @@ function DayWorkspace({ day }: { day: Day }) {
               <dd>{dateLabel(day.deliveryDate)}</dd>
             </div>
             <div>
-              <dt>Forecast available as of</dt>
+              <dt>Forecast taken till</dt>
               <dd>
-                {dateLabel(day.decisionDate)}, {day.cutoff} UK
+                {dateLabel(day.forecastDate)}, {day.cutoff} UK
               </dd>
             </div>
           </dl>
@@ -649,59 +658,29 @@ function DayWorkspace({ day }: { day: Day }) {
 
 function AccuracyWorkspace({
   cutoff,
+  from,
+  to,
+  leadDays,
   revision,
   onSelect,
 }: {
   cutoff: string;
+  from: string;
+  to: string;
+  leadDays: number;
   revision: number;
   onSelect: (date: string) => void;
 }) {
-  const [from, setFrom] = useState(FIRST_DELIVERY),
-    [to, setTo] = useState(LAST_DELIVERY);
   const result = useApi<Accuracy>(
-    `/api/accuracy?from=${shiftDay(from, -1)}&to=${shiftDay(to, -1)}&cutoff=${encodeURIComponent(cutoff)}`,
+    `/api/accuracy?from=${shiftDay(from, -1)}&to=${shiftDay(to, -1)}&cutoff=${encodeURIComponent(cutoff)}&leadDays=${leadDays}`,
     revision,
   );
   return (
     <>
-      <div className="cohort-controls">
-        <span>
-          <CalendarDays size={16} />
-          Delivery dates
-        </span>
-        <label>
-          From
-          <input
-            aria-label="First delivery date"
-            type="date"
-            min={FIRST_DELIVERY}
-            max={LAST_DELIVERY}
-            value={from}
-            onInput={(e) =>
-              e.currentTarget.value && setFrom(e.currentTarget.value)
-            }
-            onChange={(e) => e.target.value && setFrom(e.target.value)}
-          />
-        </label>
-        <label>
-          To
-          <input
-            aria-label="Last delivery date"
-            type="date"
-            min={FIRST_DELIVERY}
-            max={LAST_DELIVERY}
-            value={to}
-            onInput={(e) =>
-              e.currentTarget.value && setTo(e.currentTarget.value)
-            }
-            onChange={(e) => e.target.value && setTo(e.target.value)}
-          />
-        </label>
-      </div>
       <p className="cohort-note">
         Delivery dates 2 January–1 February cover January purchase decisions.
-        For each delivery date, use forecasts available by {cutoff} UK on the
-        previous day.
+        Each day uses forecasts taken till {cutoff} UK, {leadDays}{" "}
+        {leadDays === 1 ? "day" : "days"} before generation.
       </p>
       {result.loading ? (
         <Loading />
@@ -714,10 +693,12 @@ function AccuracyWorkspace({
             <section className="chart-section">
               <div className="section-heading">
                 <div>
-                  <h2>Daily forecast accuracy</h2>
+                  <h2>
+                    Forecast accuracy · {dateLabel(from)}–{dateLabel(to)}
+                  </h2>
                   <p>
-                    Mean absolute error by delivery date · forecasts available
-                    by {cutoff} UK the previous day
+                    Mean absolute error · forecasts taken till {cutoff} UK,{" "}
+                    {leadDays} {leadDays === 1 ? "day" : "days"} earlier
                   </p>
                 </div>
                 <span className="muted-tag">Retrospective</span>
@@ -788,7 +769,7 @@ function AccuracyWorkspace({
                   <thead>
                     <tr>
                       <th>Delivery date</th>
-                      <th>Forecast available as of (UK)</th>
+                      <th>Forecast taken till (UK)</th>
                       <th>MAE (MW)</th>
                       <th>RMSE (MW)</th>
                       <th>Bias (MW)</th>
@@ -801,7 +782,7 @@ function AccuracyWorkspace({
                       <tr key={d.decisionDate}>
                         <td>{dateLabel(d.deliveryDate)}</td>
                         <td>
-                          {dateLabel(d.decisionDate)}, {cutoff}
+                          {dateLabel(d.forecastDate)}, {cutoff}
                         </td>
                         <td>{fmt(d.mae)}</td>
                         <td>{fmt(d.rmse)}</td>
@@ -991,6 +972,19 @@ export default function App() {
   const [view, setView] = useState<View>("decision");
   const [deliveryDate, setDeliveryDate] = useState("2026-01-15");
   const [cutoff, setCutoff] = useState("10:00");
+  const [leadDays, setLeadDays] = useState(1);
+  const [accuracyFrom, setAccuracyFrom] = useState(FIRST_DELIVERY);
+  const [accuracyTo, setAccuracyTo] = useState(LAST_DELIVERY);
+  const forecastDate = shiftDay(deliveryDate, -leadDays);
+  function selectForecastDate(value: string) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return;
+    const days = Math.round(
+      (Date.parse(`${deliveryDate}T12:00:00Z`) -
+        Date.parse(`${value}T12:00:00Z`)) /
+        86400000,
+    );
+    if (days >= 1 && days <= 3660) setLeadDays(days);
+  }
   const [revision, setRevision] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobile, setMobile] = useState(
@@ -1004,13 +998,13 @@ export default function App() {
   }, []);
   const metadata = useApi<Metadata>("/api/metadata", revision);
   const day = useApi<Day>(
-    `/api/decision-day?date=${shiftDay(deliveryDate, -1)}&cutoff=${encodeURIComponent(cutoff)}`,
+    `/api/decision-day?date=${shiftDay(deliveryDate, -1)}&cutoff=${encodeURIComponent(cutoff)}&forecastDate=${forecastDate}`,
     revision,
   );
   const titles: Record<View, [string, string]> = {
     decision: [
       "Day-ahead overview",
-      "Select the delivery day and see the forecasts available the previous day.",
+      "Choose a generation day and how far back to take the forecast.",
     ],
     accuracy: [
       "Forecast accuracy",
@@ -1108,36 +1102,17 @@ export default function App() {
         </div>
       </aside>
       <div className="main-shell">
-        <header className="topbar">
-          <div className="breadcrumb">
-            <button
-              className="mobile-menu icon-button"
-              aria-expanded={menuOpen}
-              aria-label={menuOpen ? "Close navigation" : "Open navigation"}
-              onClick={() => setMenuOpen(!menuOpen)}
-            >
-              {menuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-            <span>Workspace</span>
-            <ChevronRight size={13} />
-            <strong>
-              {view === "decision" ? "Day-ahead overview" : titles[view][0]}
-            </strong>
-          </div>
-          <div className="topbar-right">
-            <span className="country">
-              <span className="flag">GB</span>Great Britain
-            </span>
-            <span className="topbar-divider" />
-            <span className="historical">
-              <span />
-              Historical replay
-            </span>
-          </div>
-        </header>
         <main id="main">
           <div className="page-heading">
             <div>
+              <button
+                className="mobile-menu page-menu icon-button"
+                aria-expanded={menuOpen}
+                aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+                onClick={() => setMenuOpen(!menuOpen)}
+              >
+                {menuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
               <div className="eyebrow">NATIONAL WIND · JANUARY 2026</div>
               <h1>{titles[view][0]}</h1>
               <p>{titles[view][1]}</p>
@@ -1152,7 +1127,11 @@ export default function App() {
             </button>
           </div>
           {(view === "decision" || view === "accuracy") && (
-            <div className="filter-bar">
+            <div
+              className="filter-bar"
+              role="group"
+              aria-label="Chart selections"
+            >
               {view === "decision" && (
                 <>
                   <div className="date-filter">
@@ -1206,16 +1185,82 @@ export default function App() {
                   <span className="filter-divider" />
                 </>
               )}
+              {view === "accuracy" && (
+                <>
+                  <div className="cohort-controls">
+                    <span>
+                      <CalendarDays size={16} />
+                      Delivery dates
+                    </span>
+                    <label>
+                      From
+                      <input
+                        aria-label="First delivery date"
+                        type="date"
+                        min={FIRST_DELIVERY}
+                        max={LAST_DELIVERY}
+                        value={accuracyFrom}
+                        onInput={(e) =>
+                          e.currentTarget.value &&
+                          setAccuracyFrom(e.currentTarget.value)
+                        }
+                        onChange={(e) =>
+                          e.target.value && setAccuracyFrom(e.target.value)
+                        }
+                      />
+                    </label>
+                    <label>
+                      To
+                      <input
+                        aria-label="Last delivery date"
+                        type="date"
+                        min={FIRST_DELIVERY}
+                        max={LAST_DELIVERY}
+                        value={accuracyTo}
+                        onInput={(e) =>
+                          e.currentTarget.value &&
+                          setAccuracyTo(e.currentTarget.value)
+                        }
+                        onChange={(e) =>
+                          e.target.value && setAccuracyTo(e.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+                  <span className="filter-divider" />
+                </>
+              )}
               <div className="cutoff-filter">
-                <label htmlFor="cutoff">Forecast available as of</label>
-                <span className="asof-date">
-                  {view === "accuracy"
-                    ? "Previous day"
-                    : dateLabel(shiftDay(deliveryDate, -1))}
-                </span>
+                <span className="filter-label">Forecast taken till</span>
+                {view === "decision" ? (
+                  <input
+                    id="forecast-date"
+                    aria-label="Forecast taken till date"
+                    type="date"
+                    min={shiftDay(deliveryDate, -3660)}
+                    max={shiftDay(deliveryDate, -1)}
+                    value={forecastDate}
+                    onInput={(e) => selectForecastDate(e.currentTarget.value)}
+                    onChange={(e) => selectForecastDate(e.target.value)}
+                  />
+                ) : (
+                  <select
+                    aria-label="Forecast taken till days before"
+                    value={leadDays}
+                    onChange={(e) => setLeadDays(Number(e.target.value))}
+                  >
+                    {[...new Set([1, 2, 3, 7, leadDays])]
+                      .sort((a, b) => a - b)
+                      .map((days) => (
+                        <option key={days} value={days}>
+                          {days} {days === 1 ? "day" : "days"} before
+                        </option>
+                      ))}
+                  </select>
+                )}
                 <input
                   id="cutoff"
-                  aria-label="Forecast available as of time"
+                  aria-label="Forecast taken till time"
                   aria-describedby="forecast-scope"
                   type="time"
                   value={cutoff}
@@ -1251,8 +1296,8 @@ export default function App() {
               <span>
                 <span className="tiny-dot" />
                 {view === "accuracy"
-                  ? "January purchase decisions · delivery 2 Jan–1 Feb"
-                  : `Forecasts available by ${dateLabel(shiftDay(deliveryDate, -1), { day: "numeric", month: "long", year: "numeric" })}, ${cutoff} UK time.`}
+                  ? `${dateLabel(accuracyFrom)}–${dateLabel(accuracyTo)} · forecasts taken till ${leadDays} ${leadDays === 1 ? "day" : "days"} earlier`
+                  : `Forecast taken till ${dateLabel(forecastDate, { day: "numeric", month: "long", year: "numeric" })}, ${cutoff} UK time.`}
               </span>
               <span>Europe/London · hourly comparison</span>
             </div>
@@ -1278,6 +1323,9 @@ export default function App() {
           ) : view === "accuracy" ? (
             <AccuracyWorkspace
               cutoff={cutoff}
+              from={accuracyFrom}
+              to={accuracyTo}
+              leadDays={leadDays}
               revision={revision}
               onSelect={(date) => {
                 setDeliveryDate(date);

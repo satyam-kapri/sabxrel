@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PropsWithChildren } from "react";
 import App from "./App";
@@ -32,6 +38,7 @@ const metrics = {
 };
 const day = {
   decisionDate: "2026-01-14",
+  forecastDate: "2026-01-14",
   deliveryDate: "2026-01-15",
   cutoff: "10:00",
   cutoffAt: "2026-01-14T10:00:00Z",
@@ -56,6 +63,7 @@ const fetchMock = vi.fn(async (path: string) => ({
                 {
                   decisionDate: "2026-01-01",
                   deliveryDate: "2026-01-02",
+                  forecastDate: "2026-01-01",
                   ...metrics,
                 },
               ],
@@ -68,6 +76,8 @@ const fetchMock = vi.fn(async (path: string) => ({
               return {
                 ...day,
                 decisionDate,
+                forecastDate: query.get("forecastDate") || decisionDate,
+                cutoffAt: `${query.get("forecastDate") || decisionDate}T${query.get("cutoff")}:00Z`,
                 deliveryDate: delivery.toISOString().slice(0, 10),
                 cutoff: query.get("cutoff")!,
               };
@@ -86,24 +96,32 @@ describe("dashboard workflows", () => {
       await screen.findByText("24 of 24 hourly pairs matched"),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Delivery date")).toHaveValue("2026-01-15");
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
+    expect(screen.queryByText("Historical replay")).not.toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Forecasts available by 14 January 2026, 10:00 UK time.",
-      ),
+      screen.getByRole("heading", {
+        name: "Wind generation · 15 January 2026",
+      }),
     ).toBeInTheDocument();
-    fireEvent.input(screen.getByLabelText("Forecast available as of time"), {
+    expect(
+      screen.getByRole("heading", { name: "Forecast error · 15 January 2026" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Forecast taken till 14 January 2026, 10:00 UK time."),
+    ).toBeInTheDocument();
+    fireEvent.input(screen.getByLabelText("Forecast taken till time"), {
       target: { value: "08:30" },
     });
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        "/api/decision-day?date=2026-01-14&cutoff=08%3A30",
+        "/api/decision-day?date=2026-01-14&cutoff=08%3A30&forecastDate=2026-01-14",
         expect.anything(),
       ),
     );
     fireEvent.click(screen.getByRole("button", { name: "Next delivery day" }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        "/api/decision-day?date=2026-01-15&cutoff=08%3A30",
+        "/api/decision-day?date=2026-01-15&cutoff=08%3A30&forecastDate=2026-01-15",
         expect.anything(),
       ),
     );
@@ -134,7 +152,7 @@ describe("dashboard workflows", () => {
     expect(screen.getByLabelText("Delivery date")).toHaveValue("2026-01-02");
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        "/api/decision-day?date=2026-01-01&cutoff=10%3A00",
+        "/api/decision-day?date=2026-01-01&cutoff=10%3A00&forecastDate=2026-01-01",
         expect.anything(),
       ),
     );
@@ -150,14 +168,12 @@ describe("dashboard workflows", () => {
     });
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        "/api/decision-day?date=2026-01-31&cutoff=10%3A00",
+        "/api/decision-day?date=2026-01-31&cutoff=10%3A00&forecastDate=2026-01-31",
         expect.anything(),
       ),
     );
     expect(
-      screen.getByText(
-        "Forecasts available by 31 January 2026, 10:00 UK time.",
-      ),
+      screen.getByText("Forecast taken till 31 January 2026, 10:00 UK time."),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Next delivery day" }),
@@ -167,7 +183,7 @@ describe("dashboard workflows", () => {
     );
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        "/api/decision-day?date=2026-01-30&cutoff=10%3A00",
+        "/api/decision-day?date=2026-01-30&cutoff=10%3A00&forecastDate=2026-01-30",
         expect.anything(),
       ),
     );
@@ -176,15 +192,17 @@ describe("dashboard workflows", () => {
     render(<App />);
     await screen.findByText("24 of 24 hourly pairs matched");
     fireEvent.click(screen.getByRole("button", { name: "Forecast accuracy" }));
-    await screen.findByRole("heading", { name: "Daily forecast accuracy" });
-    expect(screen.getByLabelText("First delivery date")).toHaveValue(
-      "2026-01-02",
-    );
+    await screen.findByRole("heading", { name: /^Forecast accuracy ·/ });
+    expect(
+      within(
+        screen.getByRole("group", { name: "Chart selections" }),
+      ).getByLabelText("First delivery date"),
+    ).toHaveValue("2026-01-02");
     expect(screen.getByLabelText("Last delivery date")).toHaveValue(
       "2026-02-01",
     );
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/accuracy?from=2026-01-01&to=2026-01-31&cutoff=10%3A00",
+      "/api/accuracy?from=2026-01-01&to=2026-01-31&cutoff=10%3A00&leadDays=1",
       expect.anything(),
     );
     fireEvent.input(screen.getByLabelText("First delivery date"), {
@@ -192,7 +210,46 @@ describe("dashboard workflows", () => {
     });
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        "/api/accuracy?from=2026-01-31&to=2026-01-31&cutoff=10%3A00",
+        "/api/accuracy?from=2026-01-31&to=2026-01-31&cutoff=10%3A00&leadDays=1",
+        expect.anything(),
+      ),
+    );
+  });
+  it("selects an older publication date without changing the generation day", async () => {
+    render(<App />);
+    await screen.findByText("24 of 24 hourly pairs matched");
+    fireEvent.input(screen.getByLabelText("Forecast taken till date"), {
+      target: { value: "2026-01-13" },
+    });
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/decision-day?date=2026-01-14&cutoff=10%3A00&forecastDate=2026-01-13",
+        expect.anything(),
+      ),
+    );
+    expect(screen.getByLabelText("Delivery date")).toHaveValue("2026-01-15");
+    expect(
+      await screen.findByRole("heading", {
+        name: "Wind generation · 15 January 2026",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Forecast taken till date")).toHaveAttribute(
+      "max",
+      "2026-01-14",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Forecast accuracy" }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/accuracy?from=2026-01-01&to=2026-01-31&cutoff=10%3A00&leadDays=2",
+        expect.anything(),
+      ),
+    );
+    fireEvent.change(screen.getByLabelText("Forecast taken till days before"), {
+      target: { value: "3" },
+    });
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/accuracy?from=2026-01-01&to=2026-01-31&cutoff=10%3A00&leadDays=3",
         expect.anything(),
       ),
     );

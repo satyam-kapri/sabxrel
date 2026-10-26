@@ -53,6 +53,41 @@ def test_api_404_not_spa_html():
     assert client.get("/api/nonexistent").status_code == 404
 
 
+def test_public_font_is_served_as_a_file_instead_of_spa_html(tmp_path, monkeypatch):
+    (tmp_path/"fonts").mkdir()
+    (tmp_path/"fonts"/"test.ttf").write_bytes(b"font-bytes")
+    (tmp_path/"index.html").write_text("<html>SPA</html>")
+    monkeypatch.setattr(main, "dist", tmp_path)
+    response = client.get("/fonts/test.ttf")
+    assert response.status_code == 200
+    assert response.content == b"font-bytes"
+    assert "text/html" not in response.headers["content-type"]
+
+
+def test_explicit_forecast_date_is_respected_by_api():
+    response = client.get("/api/decision-day?date=2026-01-14&cutoff=10:00&forecastDate=2026-01-13")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["deliveryDate"] == "2026-01-15"
+    assert body["forecastDate"] == "2026-01-13"
+    assert body["cutoffAt"] == "2026-01-13T10:00:00Z"
+    assert all(row["publishTime"] <= body["cutoffAt"] for row in body["rows"] if row["publishTime"])
+    assert body["rows"] != client.get("/api/decision-day?date=2026-01-14&cutoff=10:00").json()["rows"]
+
+
+@pytest.mark.parametrize("query", ["forecastDate=2026-01-15", "forecastDate=not-a-date"])
+def test_invalid_forecast_date(query):
+    assert client.get("/api/decision-day?date=2026-01-14&"+query).status_code == 422
+
+
+def test_accuracy_accepts_older_forecast_policy_and_rejects_invalid_lead():
+    response = client.get("/api/accuracy?from=2026-01-01&to=2026-01-02&leadDays=2")
+    assert response.status_code == 200
+    assert [day["forecastDate"] for day in response.json()["days"]] == ["2025-12-31", "2026-01-01"]
+    assert client.get("/api/accuracy?leadDays=0").status_code == 422
+    assert client.get("/api/accuracy?leadDays=3661").status_code == 422
+
+
 def test_snapshot_checksum_and_unavailable_state(tmp_path, monkeypatch):
     original_data = main.DATA
     manifest = json.loads((original_data/"manifest.json").read_text())

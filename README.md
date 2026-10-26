@@ -28,7 +28,7 @@ For frontend development, run `npm run dev` in another terminal. Vite proxies `/
 
 ## What is implemented
 
-- Delivery-date navigation for January 2-February 1 and an editable “Forecast available as of” time, displayed with the previous day's full date.
+- Delivery-date navigation for January 2-February 1 and editable “Forecast taken till” date and time controls for inspecting earlier forecast publications.
 - Day-ahead forecast and historical actual overlay, with visibility controls and publication/lead-time tooltips.
 - Hourly signed-error chart, MAE, RMSE, bias, and matched-data coverage.
 - Retrospective cohort analysis with a date range, daily breakdown, and drill-down.
@@ -41,7 +41,7 @@ For frontend development, run `npm run dev` in another terminal. Vite proxies `/
 
 The snapshot contains **17,864 forecast rows** and **1,488 half-hour WIND actual rows** from the supplied Elexon APIs. The extraction timestamps, request URLs, row counts, and SHA-256 checksum are recorded in `data/manifest.json` and exposed at `/api/metadata`. Data is real, not synthetic. Tests use clearly separate artificial fixtures.
 
-**Date convention:** delivery date is the main UI selector: choose the day the electricity is needed. For January 15 delivery, “Forecast available as of” displays January 14 and the selected UK time. The brief specifies purchase decisions made in January, so the supported deliveries remain January 2-February 1. The daily view, accuracy range, chart labels, drill-down, and CSV filenames all use delivery dates. The backend API retains its existing decision-date contract; the frontend maps each delivery date to the previous day before requesting data.
+**Date convention:** delivery date is the main UI selector: choose the day the electricity is needed. For January 15 generation, “Forecast taken till” defaults to January 14 and the selected UK time. Its date picker can select older publications without changing the generation day. Moving to another generation day preserves the selected lead time. The brief specifies purchase decisions made in January, so the supported deliveries remain January 2-February 1. The daily view, accuracy range, chart labels, drill-down, and CSV filenames all use delivery dates. The backend retains its decision-date cohort contract and accepts an optional `forecastDate` on `/api/decision-day`. This controls publication eligibility independently of the generation day. `/api/accuracy` accepts `leadDays` (default 1) to apply the same number of days before generation across the range. Neither control permits forecasts from the generation day or later.
 
 **Cutoff assumption:** no procurement cutoff was supplied. The default is **10:00 Europe/London**, editable to the minute. It is not presented as an exchange gate closure. UTC is used for all storage and joins; UK time is used in the UI. January is GMT.
 
@@ -83,7 +83,7 @@ npm run build
 
 The backend suite covers exact cutoff eligibility, future-publication exclusion, missing half-hours, zero generation, duplicate/conflicting records, revisions, month and DST boundaries, pooled metric arithmetic, API validation, snapshot corruption, ingestion query construction, and real-snapshot coverage. One independent live sample verifies the first delivery hour: forecast 18,699 MW; actual mean `(15,228 + 15,505) / 2 = 15,366.5 MW`; signed error 3,332.5 MW.
 
-Five frontend workflow tests cover the full displayed forecast timestamp, delivery-to-decision mapping, unavailable data and retry, cohort drill-down, and both ends of the delivery range including February 1. Browser QA additionally checks the actual charts, date navigation, cutoff updates, daily drill-down, data provenance, methodology, and mobile layout. See `docs/VERIFICATION.md` for the measured results and remaining environment limitations.
+Six frontend workflow tests cover the full displayed forecast timestamp, delivery-to-decision mapping, unavailable data and retry, cohort drill-down, both ends of the delivery range including February 1, and older forecast-date selection. Accuracy range controls sit in the main selection bar. Daily chart headings state the generation date directly, and the redundant workspace top bar is removed. Browser QA additionally checks the actual charts, date navigation, cutoff updates, daily drill-down, data provenance, methodology, and mobile layout. See `docs/VERIFICATION.md` for the measured results and remaining environment limitations.
 
 GitHub Actions runs both suites, a production build, Docker build, and container smoke tests. It uses the committed snapshot and does not depend on live Elexon availability.
 

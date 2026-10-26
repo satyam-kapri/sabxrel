@@ -122,3 +122,30 @@ def test_cohort_rmse_is_computed_across_pairs_not_mean_of_daily_rmse():
     result = Dataset(fs, acts).accuracy(date(2026, 1, 1), date(2026, 1, 2), "10:00")
     assert result["metrics"]["rmse"] == pytest.approx(sqrt(50))
     assert result["metrics"]["rmse"] != 5
+
+
+def test_explicit_past_forecast_date_uses_older_publications_for_same_generation_day():
+    dataset = Dataset([forecast(40, "2025-12-31T09:30:00Z"), forecast(100)], halves())
+    result = dataset.day(date(2026, 1, 1), "10:00", date(2025, 12, 31))
+    assert result["deliveryDate"] == "2026-01-02"
+    assert result["decisionDate"] == "2026-01-01"
+    assert result["forecastDate"] == "2025-12-31"
+    assert result["cutoffAt"] == "2025-12-31T10:00:00Z"
+    assert result["rows"][0]["forecast"] == 40
+    assert result["rows"][0]["actual"] == 70
+    assert result["rows"][0]["error"] == -30
+
+
+def test_forecast_date_cannot_cross_into_generation_day():
+    with pytest.raises(ValueError, match="before the generation day"):
+        Dataset([], []).day(date(2026, 1, 1), "10:00", date(2026, 1, 2))
+
+
+def test_cohort_lead_days_apply_consistently_and_do_not_fill_missing_forecasts():
+    dataset = Dataset([forecast(40, "2025-12-31T09:30:00Z"), forecast(100)], halves())
+    result = dataset.accuracy(date(2026, 1, 1), date(2026, 1, 2), "10:00", 2)
+    assert result["leadDays"] == 2
+    assert [d["forecastDate"] for d in result["days"]] == ["2025-12-31", "2026-01-01"]
+    assert result["metrics"]["mae"] == 30
+    assert result["metrics"]["matched"] == 1
+    assert result["metrics"]["expected"] == 48

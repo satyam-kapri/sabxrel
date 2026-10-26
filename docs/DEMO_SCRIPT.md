@@ -6,7 +6,7 @@ The generated local walkthrough uses actual application captures and synthetic M
 
 ### 01 — Day-ahead overview
 
-Welcome to Ventus, a pilot for understanding the wind forecast behind a day-ahead purchasing decision. This is a historical replay using real Elexon data, with synthetic narration for this walkthrough. We select January fifteenth as the delivery date. Forecast available as of shows January fourteenth at ten in the morning, so both dates are explicit. The main chart compares that forecast with actual outturn. The summary shows an average forecast of about eleven thousand six hundred and seventy-eight megawatts, with twenty-four matched hours. Actual generation is shown retrospectively; it was not known when purchasing.
+Welcome to Ventus, a pilot for understanding the wind forecast behind a day-ahead purchasing decision. This is a historical replay using real Elexon data, with synthetic narration for this walkthrough. We select January fifteenth as the delivery date. Forecast taken till shows January fourteenth at ten in the morning, so both dates are explicit. The main chart compares that forecast with actual outturn. The summary shows an average forecast of about eleven thousand six hundred and seventy-eight megawatts, with twenty-four matched hours. Actual generation is shown retrospectively; it was not known when purchasing.
 
 ### 02 — Earlier cutoff
 
@@ -32,7 +32,7 @@ The domain layer is independent of the web framework. For each target hour, fore
 
 ### 07 — Verification
 
-Thirty-six backend tests cover temporal eligibility, exact cutoff boundaries, future revision exclusion, missing and zero actuals, conflicting records, metric arithmetic, date bounds, daylight saving, API validation, and checksum failures. Five frontend workflow tests cover delivery mapping, forecast timestamps, date boundaries, unavailable data and retry, and cohort drill-down. Browser checks verify the real charts and native input interaction. An independent source sample checks the first hour against two actual readings. Continuous integration verifies tests, the production build, the Docker image, and a container runtime smoke test on Ubuntu.
+Forty-four backend tests cover temporal eligibility, exact cutoff boundaries, future revision exclusion, missing and zero actuals, conflicting records, metric arithmetic, date bounds, daylight saving, API validation, and checksum failures. Six frontend workflow tests cover delivery mapping, forecast timestamps, date boundaries, unavailable data and retry, and cohort drill-down. Browser checks verify the real charts and native input interaction. An independent source sample checks the first hour against two actual readings. Continuous integration verifies tests, the production build, the Docker image, and a container runtime smoke test on Ubuntu.
 
 ### 08 — Delivery and handover
 

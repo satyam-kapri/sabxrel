@@ -114,9 +114,12 @@ class Dataset:
             raise ValueError("Generation must be a finite, non-negative number in MW")
         return float(value)
 
-    def day(self, decision: date, cutoff: str) -> dict:
+    def day(self, decision: date, cutoff: str, forecast_date: date | None = None) -> dict:
         validate_date(decision)
-        cutoff_at = datetime.combine(decision, cutoff_time(cutoff), UK).astimezone(UTC)
+        forecast_date = forecast_date or decision
+        if forecast_date > decision:
+            raise ValueError("Forecast taken till date must be before the generation day")
+        cutoff_at = datetime.combine(forecast_date, cutoff_time(cutoff), UK).astimezone(UTC)
         rows = []
         for target in delivery_grid(decision):
             eligible = [x for x in self.forecasts.get(target, []) if x[0] <= cutoff_at]
@@ -136,22 +139,26 @@ class Dataset:
         publications = sorted({r["publishTime"] for r in rows if r["publishTime"]})
         return {
             "decisionDate": decision.isoformat(), "deliveryDate": (decision+timedelta(days=1)).isoformat(),
+            "forecastDate": forecast_date.isoformat(),
             "cutoff": cutoff, "cutoffAt": iso(cutoff_at), "rows": rows, "metrics": metrics(rows),
             "averageForecast": sum(forecasts)/len(forecasts) if forecasts else None,
             "peakForecast": max(forecasts) if forecasts else None,
             "publications": publications,
         }
 
-    def accuracy(self, first: date, last: date, cutoff: str) -> dict:
+    def accuracy(self, first: date, last: date, cutoff: str, lead_days: int = 1) -> dict:
         validate_date(first)
         validate_date(last)
         if first > last:
             raise ValueError("Start date must be on or before end date")
-        days = [self.day(first+timedelta(days=i), cutoff) for i in range((last-first).days+1)]
+        if not 1 <= lead_days <= 3660:
+            raise ValueError("Forecast age must be between 1 and 3660 days before generation")
+        decisions = [first+timedelta(days=i) for i in range((last-first).days+1)]
+        days = [self.day(day, cutoff, day-timedelta(days=lead_days-1)) for day in decisions]
         rows = [r for day in days for r in day["rows"]]
         return {
-            "from": first.isoformat(), "to": last.isoformat(), "cutoff": cutoff,
+            "from": first.isoformat(), "to": last.isoformat(), "cutoff": cutoff, "leadDays": lead_days,
             "metrics": metrics(rows),
-            "days": [{"decisionDate": d["decisionDate"], "deliveryDate": d["deliveryDate"],
+            "days": [{"decisionDate": d["decisionDate"], "deliveryDate": d["deliveryDate"], "forecastDate": d["forecastDate"],
                       "averageForecast": d["averageForecast"], **d["metrics"]} for d in days],
         }

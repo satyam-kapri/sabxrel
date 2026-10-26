@@ -20,6 +20,7 @@ export type Interval = {
 };
 export type Day = {
   decisionDate: string;
+  forecastDate: string;
   deliveryDate: string;
   cutoff: string;
   cutoffAt: string;
@@ -31,6 +32,7 @@ export type Day = {
 };
 export type AccuracyDay = Metrics & {
   decisionDate: string;
+  forecastDate: string;
   deliveryDate: string;
   averageForecast: number | null;
 };
@@ -38,6 +40,7 @@ export type Accuracy = {
   from: string;
   to: string;
   cutoff: string;
+  leadDays: number;
   metrics: Metrics;
   days: AccuracyDay[];
 };
