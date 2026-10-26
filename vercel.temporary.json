@@ -5,8 +5,17 @@
       "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
-        "includeFiles": ["backend/app/**", "data/manifest.json", "data/snapshot.json"],
-        "excludeFiles": [".venv/**", "data/raw/**", "tmp/**", "backend/tests/**"]
+        "includeFiles": [
+          "backend/app/**",
+          "data/manifest.json",
+          "data/snapshot.json"
+        ],
+        "excludeFiles": [
+          ".venv/**",
+          "data/raw/**",
+          "tmp/**",
+          "backend/tests/**"
+        ]
       }
     },
     { "src": "dist/**", "use": "@vercel/static" }

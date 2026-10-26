@@ -1,6 +1,6 @@
 # Wind Forecast Decision Support: Engineering Plan
 
-Status: planning baseline; implementation has not started.
+Status: original planning baseline, now implemented. See `docs/DELIVERY.md` and `docs/VERIFICATION.md` for verified outcomes and remaining external delivery steps.
 
 Sources: `requirements.pdf`, all three pages, and the API documentation/examples supplied by the user. Endpoint names, documented filters, and sample schemas are now recorded below. Live API access, actual response schemas, historical data availability, and deployment credentials have not been validated.
 

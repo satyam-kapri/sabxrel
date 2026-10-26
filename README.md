@@ -112,7 +112,9 @@ A single modular backend serves a fixed-month read-only snapshot. This avoids da
 
 ## Deployment
 
-Deployment status and live links are maintained in `docs/DELIVERY.md`. A temporary preview, if present, expires unless claimed and is not a durable submission URL.
+Public repository: [satyam-kapri2/r-5f01eb504d](https://github.com/satyam-kapri2/r-5f01eb504d). [Verified CI run](https://github.com/satyam-kapri2/r-5f01eb504d/actions/runs/40379455188) passed tests, production build, Docker build, and running-container smoke tests.
+
+Deployment status and live links are maintained in `docs/DELIVERY.md`. The temporary Vercel preview returned an edge 403 during public verification and is not a working submission URL. Account-owned hosting remains outstanding.
 
 ### Vercel
 
@@ -126,6 +128,8 @@ npm run build
 python -m pip install uv
 npx vercel deploy --temporary --yes --local-config vercel.temporary.json
 ```
+
+If Windows reports invalid traced paths, `scripts/prepare_vercel.py` can assemble a minimal Build Output API package with Linux Python 3.12 wheels after the official builder has emitted its runtime handler. Deploy that package with `npx vercel deploy --cwd tmp/vercel-prebuilt --prebuilt --temporary --yes`. This workaround completed deployment packaging locally; the resulting temporary URL still failed public access verification. Use an authenticated Linux/cloud build for durable hosting.
 
 The CLI's private claim URL grants control of the temporary deployment. Keep it private, outside commits and public screenshots. Use an account-owned production deployment for final submission.
 
@@ -146,6 +150,8 @@ The runtime binds to `$PORT`, uses the same image as local execution, and keeps 
 
 AI assistance (OpenAI Codex) was used for requirements analysis, architecture, source implementation, styling, test authoring, documentation, and verification. Real API responses were inspected, the analytic comparison was explicitly documented, and tests validate the critical temporal and arithmetic rules. AI assistance does not replace the recorded tests or establish market-domain guarantees.
 
-The required two-part demonstration is scripted in `docs/DEMO_SCRIPT.md`. The final unlisted YouTube video must be at most ten minutes, with at most five minutes for each part. Delivery notes distinguish generated local artifacts from published, publicly verified links.
+The two-part demonstration is scripted in `docs/DEMO_SCRIPT.md`. A local 5:29 MP4 with synthetic narration is available in `output/ventus-demo.mp4`, with SRT captions and a chapter manifest. Client presentation is 2:31 and technical review is 2:58. It has not been uploaded to YouTube. Generated media stays outside the public source repository.
+
+The optional media helpers are `scripts/demo_pages.py`, `scripts/narrate_demo.ps1` (Windows System.Speech), and `scripts/encode_demo.py` (requires `imageio-ffmpeg`). The encoding step uses real browser captures stored under `output/demo/frames`. Delivery notes distinguish local artifacts from published, publicly verified links.
 
 Contains BMRS data © Elexon Limited copyright and database right 2026. [BMRS data licence](https://www.elexon.co.uk/bsc/data/balancing-mechanism-reporting-agent/copyright-licence-bmrs-data/). This independent application is not endorsed by Elexon.

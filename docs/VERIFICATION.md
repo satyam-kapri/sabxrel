@@ -24,12 +24,15 @@
 - January accuracy view and daily drill-down checked.
 - January 31 decision mapped to February 1 delivery; next-day navigation was disabled at the boundary.
 - Native time field initially did not commit edits through the browser automation's input event; added explicit input handling and verified the corrected behavior.
-- Additional mobile, table, export, provenance, and final deployment checks are recorded in the delivery log as completed.
+- Mobile checked at 390px width without page overflow; mobile navigation and the interval table were exercised.
+- CSV downloaded through the UI and independently parsed: 24 rows, expected provenance fields, and no publication after the cutoff.
+- Provenance and methodology views inspected. Native source links and the required data attribution are included.
+- Eight captured views and synthetic narration were encoded into a 329-second MP4. Audio is nonzero and both presentation parts remain below five minutes.
 
 ## Environment limits
 
-Docker Desktop is installed but its Linux engine did not become available after the standard startup attempts. Local container execution is not claimed as passed. GitHub Actions includes an independent Ubuntu Docker build and runtime smoke test; its observed status is recorded separately in `DELIVERY.md`.
+Docker Desktop is installed but its Linux engine did not become available after the standard startup attempts. Local container execution is not claimed as passed. The independent Ubuntu Docker build and runtime smoke test passed in [GitHub Actions run 40379455188](https://github.com/satyam-kapri2/r-5f01eb504d/actions/runs/40379455188).
 
-No authenticated Vercel or Heroku session was present. The Windows Vercel local builder hit a missing-shell/path issue. A Build Output API workaround prepares Linux Python wheels and a minimal function package; temporary hosting must be smoke-tested before any successful-deployment claim.
+No authenticated Vercel or Heroku session was present. The Windows Vercel local builder hit a missing-shell/path issue. A Build Output API workaround prepared Linux Python wheels and a minimal function package. Vercel reported the temporary deployment READY, but browser and independent HTTP checks returned an edge 403. Public hosting is not claimed as passed.
 
 The test client emits an upstream Starlette warning recommending a different HTTP client; the exercised response contracts and all backend tests pass.
